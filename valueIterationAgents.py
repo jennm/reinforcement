@@ -12,6 +12,7 @@
 # Pieter Abbeel (pabbeel@cs.berkeley.edu).
 
 
+from os import stat
 from sys import _current_frames
 import mdp, util
 
@@ -41,10 +42,13 @@ class ValueIterationAgent(ValueEstimationAgent):
         """
         self.mdp = mdp
         self.discount = discount
+        # self.discount = 1 - discount
         self.iterations = iterations
         self.values = util.Counter() # A Counter is a dict with default 0
         
         self.policy = util.Counter()
+
+        x = self.mdp.getStartState()
 
         print(iterations)
         first = True
@@ -52,19 +56,32 @@ class ValueIterationAgent(ValueEstimationAgent):
             print(i)
             states = self.mdp.getStates()
             for state in states:
-                actions = self.mdp.getPossibleActions(state)
-                if actions is None:
+                if self.mdp.isTerminal(state):
                     self.values[state] = 0
                     continue
-                for action in actions:
+                # actions = state.getLegalActions()
+                action = self.getAction(state)
+                # actions = self.mdp.getPossibleActions(state)
+                if action is None:# or len(actions) == 0:
+                    # if self.mdp.isTerminal(state):
+                    self.values[state] = 0
+                    # else:
+                    # self.values[state] = self.values[state] * self.discount
+                    continue
+                # first = True
+                # print(actions)
+                # self.values[state] = self.getQValue(state, actions[0])
+                # for action in actions[1:]:
                     # print(self.getQValue(state, action))
-                    q_value = self.getQValue(state, action)
-                    if first or q_value > self.values[state]:
-                        self.values[state] = q_value
-                        first = False
+                    # self.values[state] = self.getQValue(state, action)
+                    # if  q_value > self.values[state]:
+                self.values[state] = self.getQValue(state, action)
+                    # print(action, self.mdp.isTerminal(state))
+                # self.values[state] = max(self.values[state], tmp)
+                    # first = False
                     # self.policy[state] = max(self.policy[state], q_value)
-                if i == 0:
-                    first = True
+                # if i == 0:
+                #     first = True
 
             # self.mdp.getPossibleActions(state)
             # do something
@@ -87,11 +104,21 @@ class ValueIterationAgent(ValueEstimationAgent):
         "*** YOUR CODE HERE ***"
 
         # get next state
+        # if self.mdp.isTerminal(state):
+        #     return self.mdp.(self.values[state] * self.discount + self.mdp.getReward(state, None, state))
         next_options = self.mdp.getTransitionStatesAndProbs(state, action)
         sum = 0
+        # first = True
+        print(next_options)
         for option in next_options:
             nextState, prob = option
+            # print("nextstate:", nextState)
             sum += prob * (self.mdp.getReward(state, action, nextState) + self.discount * self.values[nextState])
+            # print("sum: ", sum)
+            # if first or tmp > sum:
+            #     sum = tmp
+            #     first = False
+            # sum = max(sum, prob * (self.mdp.getReward(state, action, nextState) + self.discount * self.values[nextState]))
 
         return sum
 
@@ -110,17 +137,23 @@ class ValueIterationAgent(ValueEstimationAgent):
             return None
         actions = self.mdp.getPossibleActions(state)
         policy = 0
+        first = True
+        best_action = None
         for action in actions:
             nextStates = self.mdp.getTransitionStatesAndProbs(state, action)
             # print('x', nextState)
+            tmp = 0
             for next_state in nextStates:
                 nextState, prob = next_state
                 # if self.mdp.isTerminal(nextState):
                 #     policy = max(policy, 0)#prob * (self.mdp.getReward(state, action, nextState)))
                 # else:
-                policy = max(policy, prob * (self.mdp.getReward(state, action, nextState) + self.discount * self.values[nextState]))
-
-        return policy#self.policy[state]#self.policy[state]
+                tmp += prob * (self.mdp.getReward(state, action, nextState) + self.discount * self.values[nextState]) 
+            if first or tmp > policy:
+                policy = tmp
+                best_action = action
+                first = False
+        return best_action#self.policy[state]#self.policy[state]
         "*** YOUR CODE HERE ***"
         util.raiseNotDefined()
 
