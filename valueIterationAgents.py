@@ -12,6 +12,7 @@
 # Pieter Abbeel (pabbeel@cs.berkeley.edu).
 
 
+from sys import _current_frames
 import mdp, util
 
 from learningAgents import ValueEstimationAgent
@@ -42,7 +43,31 @@ class ValueIterationAgent(ValueEstimationAgent):
         self.discount = discount
         self.iterations = iterations
         self.values = util.Counter() # A Counter is a dict with default 0
+        
+        self.policy = util.Counter()
 
+        print(iterations)
+        first = True
+        for i in range(self.iterations):
+            print(i)
+            states = self.mdp.getStates()
+            for state in states:
+                actions = self.mdp.getPossibleActions(state)
+                if actions is None:
+                    self.values[state] = 0
+                    continue
+                for action in actions:
+                    # print(self.getQValue(state, action))
+                    q_value = self.getQValue(state, action)
+                    if first or q_value > self.values[state]:
+                        self.values[state] = q_value
+                        first = False
+                    # self.policy[state] = max(self.policy[state], q_value)
+                if i == 0:
+                    first = True
+
+            # self.mdp.getPossibleActions(state)
+            # do something
         # Write value iteration code here
         "*** YOUR CODE HERE ***"
 
@@ -60,7 +85,17 @@ class ValueIterationAgent(ValueEstimationAgent):
           value function stored in self.values.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+
+        # get next state
+        next_options = self.mdp.getTransitionStatesAndProbs(state, action)
+        sum = 0
+        for option in next_options:
+            nextState, prob = option
+            sum += prob * (self.mdp.getReward(state, action, nextState) + self.discount * self.values[nextState])
+
+        return sum
+
+        # util.raiseNotDefined()
 
     def computeActionFromValues(self, state):
         """
@@ -71,6 +106,21 @@ class ValueIterationAgent(ValueEstimationAgent):
           there are no legal actions, which is the case at the
           terminal state, you should return None.
         """
+        if self.mdp.isTerminal(state):
+            return None
+        actions = self.mdp.getPossibleActions(state)
+        policy = 0
+        for action in actions:
+            nextStates = self.mdp.getTransitionStatesAndProbs(state, action)
+            # print('x', nextState)
+            for next_state in nextStates:
+                nextState, prob = next_state
+                # if self.mdp.isTerminal(nextState):
+                #     policy = max(policy, 0)#prob * (self.mdp.getReward(state, action, nextState)))
+                # else:
+                policy = max(policy, prob * (self.mdp.getReward(state, action, nextState) + self.discount * self.values[nextState]))
+
+        return policy#self.policy[state]#self.policy[state]
         "*** YOUR CODE HERE ***"
         util.raiseNotDefined()
 
